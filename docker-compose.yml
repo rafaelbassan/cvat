@@ -104,24 +104,14 @@ services:
     restart: always
     depends_on:
       - cvat_server
-    networks:
-      - cvat
-
-  cvat_proxy:
-    container_name: cvat_proxy
-    image: nginx:1.25-alpine
-    restart: always
-    depends_on:
-      - cvat_server
-      - cvat_ui
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /opt/cvat/default.conf:/etc/nginx/conf.d/default.conf:ro
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.cvat-proxy.loadbalancer.server.port=80"
-      - "traefik.http.routers.cvat-proxy.rule=Host(`${CVAT_HOST}`)"
-      - "traefik.http.routers.cvat-proxy.entrypoints=http,https"
-      - "traefik.http.routers.cvat-proxy.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cvat-ui.loadbalancer.server.port=8000"
+      - "traefik.http.routers.cvat-ui.rule=Host(`${CVAT_HOST}`)"
+      - "traefik.http.routers.cvat-ui.entrypoints=http,https"
+      - "traefik.http.routers.cvat-ui.tls.certresolver=letsencrypt"
       - "traefik.docker.network=coolify"
     networks:
       - cvat
