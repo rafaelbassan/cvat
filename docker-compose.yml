@@ -92,9 +92,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.cvat.loadbalancer.server.port=8080"
-      - "traefik.http.routers.cvat.rule=Host(`${CVAT_HOST}`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`))"
+      - "traefik.http.routers.cvat.rule=Host(`${CVAT_HOST}`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`) || PathPrefix(`/analytics`))"
       - "traefik.http.routers.cvat.entrypoints=http,https"
       - "traefik.http.routers.cvat.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.cvat.priority=10"
       - "traefik.docker.network=coolify"
     volumes:
       - cvat_data:/home/django/data
@@ -115,9 +116,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.cvat-ui.loadbalancer.server.port=8000"
-      - "traefik.http.routers.cvat-ui.rule=Host(`${CVAT_HOST}`)"
+      - "traefik.http.routers.cvat-ui.rule=Host(`${CVAT_HOST}`) && !PathPrefix(`/api/`) && !PathPrefix(`/static/`) && !PathPrefix(`/admin`) && !PathPrefix(`/django-rq`) && !PathPrefix(`/analytics`)"
       - "traefik.http.routers.cvat-ui.entrypoints=http,https"
       - "traefik.http.routers.cvat-ui.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.cvat-ui.priority=1"
       - "traefik.docker.network=coolify"
     networks:
       - cvat
