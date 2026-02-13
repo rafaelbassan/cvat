@@ -53,11 +53,7 @@ services:
     container_name: cvat_redis_inmem
     image: redis:7.2.11-alpine
     restart: always
-    command: [
-      "redis-server",
-      "--save", "60", "100",
-      "--appendonly", "yes",
-    ]
+    command: ["redis-server", "--save", "60", "100", "--appendonly", "yes"]
     volumes:
       - cvat_inmem_db:/data
     networks:
@@ -89,17 +85,15 @@ services:
       ADAPTIVE_AUTO_ANNOTATION: 'false'
       NUMPROCS: 2
       CVAT_ANALYTICS: 1
-      CVAT_BASE_URL: 
-      ONE_RUNNING_JOB_IN_QUEUE_PER_USER: ''
+      CVAT_HOST: "${CVAT_HOST}"
     command: init run server
     labels:
-      - traefik.enable=true
-      - traefik.http.services.cvat.loadbalancer.server.port=8080
-      - traefik.http.routers.cvat.rule=Host(`${CVAT_HOST:-localhost}`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`))
-      - traefik.http.routers.cvat.entrypoints=http
-      - traefik.http.routers.cvat-secure.entrypoints=https
-      - traefik.http.routers.cvat-secure.tls=true
-      - traefik.http.routers.cvat-secure.tls.certresolver=letsencrypt
+      - "traefik.enable=true"
+      - "traefik.http.services.cvat.loadbalancer.server.port=8080"
+      - "traefik.http.routers.cvat.rule=Host(`${CVAT_HOST}`) && (PathPrefix(`/api/`) || PathPrefix(`/static/`) || PathPrefix(`/admin`) || PathPrefix(`/django-rq`))"
+      - "traefik.http.routers.cvat.entrypoints=http,https"
+      - "traefik.http.routers.cvat.tls.certresolver=letsencrypt"
+      - "traefik.docker.network=coolify"
     volumes:
       - cvat_data:/home/django/data
       - cvat_keys:/home/django/keys
@@ -110,14 +104,29 @@ services:
           - cvat-server
       coolify:
 
+  cvat_ui:
+    container_name: cvat_ui
+    image: cvat/ui:${CVAT_VERSION:-dev}
+    restart: always
+    depends_on:
+      - cvat_server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.cvat-ui.loadbalancer.server.port=8000"
+      - "traefik.http.routers.cvat-ui.rule=Host(`${CVAT_HOST}`)"
+      - "traefik.http.routers.cvat-ui.entrypoints=http,https"
+      - "traefik.http.routers.cvat-ui.tls.certresolver=letsencrypt"
+      - "traefik.docker.network=coolify"
+    networks:
+      - cvat
+      - coolify
+
   cvat_worker_utils:
-    container_name: cvat_worker_utils
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
       <<: *backend-env
-      CVAT_REDIS_INMEM_PASSWORD: ''
       NUMPROCS: 1
     command: run worker notifications cleaning
     volumes:
@@ -128,7 +137,6 @@ services:
       - cvat
 
   cvat_worker_import:
-    container_name: cvat_worker_import
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
@@ -144,7 +152,6 @@ services:
       - cvat
 
   cvat_worker_export:
-    container_name: cvat_worker_export
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
@@ -160,7 +167,6 @@ services:
       - cvat
 
   cvat_worker_annotation:
-    container_name: cvat_worker_annotation
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
@@ -176,7 +182,6 @@ services:
       - cvat
 
   cvat_worker_webhooks:
-    container_name: cvat_worker_webhooks
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
@@ -192,7 +197,6 @@ services:
       - cvat
 
   cvat_worker_quality_reports:
-    container_name: cvat_worker_quality_reports
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
@@ -208,7 +212,6 @@ services:
       - cvat
 
   cvat_worker_chunks:
-    container_name: cvat_worker_chunks
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
@@ -224,7 +227,6 @@ services:
       - cvat
 
   cvat_worker_consensus:
-    container_name: cvat_worker_consensus
     image: cvat/server:${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
@@ -238,24 +240,6 @@ services:
       - cvat_logs:/home/django/logs
     networks:
       - cvat
-
-  cvat_ui:
-    container_name: cvat_ui
-    image: cvat/ui:${CVAT_VERSION:-dev}
-    restart: always
-    depends_on:
-      - cvat_server
-    labels:
-      - traefik.enable=true
-      - traefik.http.services.cvat-ui.loadbalancer.server.port=8000
-      - traefik.http.routers.cvat-ui.rule=Host(`${CVAT_HOST:-localhost}`)
-      - traefik.http.routers.cvat-ui.entrypoints=http
-      - traefik.http.routers.cvat-ui-secure.entrypoints=https
-      - traefik.http.routers.cvat-ui-secure.tls=true
-      - traefik.http.routers.cvat-ui-secure.tls.certresolver=letsencrypt
-    networks:
-      - cvat
-      - coolify
 
   cvat_opa:
     container_name: cvat_opa
@@ -279,7 +263,7 @@ services:
   cvat_clickhouse:
     container_name: cvat_clickhouse
     image: clickhouse/clickhouse-server:23.11-alpine
-    restart: "always"
+    restart: always
     environment:
       <<: *clickhouse-env
     networks:
@@ -321,7 +305,7 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: true
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: true
-      GF_SERVER_ROOT_URL: http://${CVAT_HOST:-localhost}/analytics
+      GF_SERVER_ROOT_URL: "http://${CVAT_HOST}/analytics"
       GF_INSTALL_PLUGINS: 'grafana-clickhouse-datasource 4.8.2'
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/all_events.json
     volumes:
