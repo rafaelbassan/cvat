@@ -264,9 +264,9 @@ services:
     image: traefik:v3.6
     container_name: traefik
     restart: always
-    ports:
-      - 8080:8080
-      - 8090:8090
+    #ports:
+    #  - 8080:8080
+    #  - 8090:8090
     environment:
       CVAT_HOST: ${CVAT_HOST:-localhost}
       DJANGO_LOG_VIEWER_HOST: grafana
